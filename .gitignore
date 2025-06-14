@@ -1,0 +1,20 @@
+# Carpetas de Visual Studio
+.vs/
+x64/
+Debug/
+Release/
+
+# Archivos generados automáticamente
+*.user
+*.suo
+*.VC.db
+*.ipch
+*.pdb
+*.obj
+*.log
+*.tlog
+*.ilk
+*.exe
+*.cache
+*.sdf
+*.db
