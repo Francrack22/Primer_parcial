@@ -92,6 +92,7 @@ int main()
     cout<<"Rectángulo D:\n"; imprimirRect(d, xEnd, yEnd);
 
     // Mostrar los resultados de traslape 
+        // aqui usamos el if de una sola linea, muestra si es verdadero o no dependiendo si sea "si" o "no"
     cout<<"\n¿A y B se traslapan? "<<(CheckOverlap(a, b) ? "Sí" : "No")<<endl;
     cout<<"¿A y C se traslapan? "<<(CheckOverlap(a, c) ? "Sí" : "No")<<endl;
     cout<<"¿A y D se traslapan? "<<(CheckOverlap(a, d) ? "Sí" : "No")<<endl;
@@ -128,3 +129,5 @@ int main()
 
     return 0;
 }
+// Utilizamos un video de youtube llamado "Programación en C++ || Condicionales || La sentencia if" para entender un poco mas como hacer eso del if en una sola linea
+// Y usamos chatgpt para preguntarle si lo estabamos haciendo correctamente y asi acabar de entender bien como se hace
