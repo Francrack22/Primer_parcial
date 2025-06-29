@@ -4,17 +4,20 @@
 #include <iostream>
 using namespace std;
 
+// Directiva para contar las copias en el arreglo dinámico
+#define COUNT_DYNAMIC_ARRAY_COPIES 1
+
 // Función template para imprimir un array de cualquier tipo
 template <typename T>
 void PrintArray(T* array, int size) 
 {
     // Recorremos el array e imprimimos cada elemento
     for (int i = 0; i < size; ++i)
-        cout<<array[i]<<" ";
+        cout<<array[i] << " ";
     cout<<endl;
 }
 
-// Clase DynamicArray usando plantillas (templates)
+// Clase DynamicArray usando plantillas 
 template <typename T>
 class DynamicArray 
 {
@@ -22,7 +25,10 @@ private:
     T* data;           // Apuntador al arreglo dinámico
     int capacity;      // Capacidad total
     int count;         // Número de elementos actuales
+
+#if COUNT_DYNAMIC_ARRAY_COPIES
     int copyCounter = 0; // Contador de copias para debug
+#endif
 
     // Función privada para redimensionar el arreglo
     void resize(int newCapacity) 
@@ -31,7 +37,9 @@ private:
         for (int i = 0; i < count; ++i) 
         {
             newData[i] = data[i]; // Copiamos datos
-            copyCounter++;        // Contamos copias
+#if COUNT_DYNAMIC_ARRAY_COPIES
+            copyCounter++;        // Contamos copias solo si está activado
+#endif
         }
         delete[] data; // Liberamos memoria anterior
         data = newData;
@@ -39,7 +47,7 @@ private:
     }
 
 public:
-    // Constructor inicializa todo en 0 o null
+    // Constructor inicializa todo en 0 
     DynamicArray() : data(nullptr), capacity(0), count(0) {}
 
     // Agrega un nuevo elemento al final
@@ -52,7 +60,7 @@ public:
         data[count++] = value;
     }
 
-    // Sobrecarga del operador [] para acceder a elementos como array
+    // Sobrecarga del operador para acceder a elementos como array
     T& operator[](int index) 
     {
         return data[index];
@@ -81,8 +89,15 @@ public:
     // Devuelve número de elementos actuales
     int size() const { return count; }
 
-    // Devuelve número de copias hechas
-    int getCopyCount() const { return copyCounter; }
+    // Devuelve número de copias hechas (solo si se activa el define)
+    int getCopyCount() const 
+    {
+#if COUNT_DYNAMIC_ARRAY_COPIES
+        return copyCounter;
+#else
+        return -1;
+#endif
+    }
 
     // Destructor libera la memoria usada
     ~DynamicArray() 
@@ -91,7 +106,7 @@ public:
     }
 };
 
-// Clase LinkedList tipo forward list
+    // Clase LinkedList tipo forward list
 template <typename T>
 class LinkedList 
 {
@@ -134,10 +149,10 @@ public:
         Node* curr = head;
         while (curr) 
         {
-            cout<<curr->data << " ";
+            cout<<curr->data<<" ";
             curr = curr->next;
         }
-        cout<<endl;
+        cout << endl;
     }
 
     // Libera toda la memoria usada por la lista
@@ -147,13 +162,13 @@ public:
         while (curr) 
         {
             Node* next = curr->next;
-            delete curr;
+            delete curr; // Se libera memoria nodo por nodo
             curr = next;
         }
         head = nullptr;
     }
 
-    // Destructor: se asegura de liberar memoria
+    // Se asegura de liberar memoria al final
     ~LinkedList() 
     {
         Clear(); // Llama a función que libera nodo por nodo
@@ -162,37 +177,36 @@ public:
 
 int main() 
 {
-    // DynamicArray 
+    // DynamicArray
     DynamicArray<int> arr;
     arr.push_back(10);
     arr.push_back(20);
     arr.push_back(30);
 
     cout<<"Contenido del DynamicArray:\n";
-    PrintArray(&arr[0], arr.size()); // Usamos PrintArray para imprimir
+    PrintArray(&arr[0], arr.size()); // Imprime el arreglo dinámico
 
     cout<<"Elemento en posición 0: "<<arr[0]<<endl;
 
-    arr.pop_back(); // Elimina último
-    arr.shrink_to_fit(); // Ajusta la memoria
+    arr.pop_back(); // Elimina el último elemento
+    arr.shrink_to_fit(); // Ajusta la capacidad a la cantidad de elementos
 
     cout<<"Copias realizadas: "<<arr.getCopyCount()<<endl;
 
-    // El LinkedList 
+    // LinkedList
     LinkedList<string> list;
     list.push_front("mundo");
     list.push_front("Hola");
 
     cout<<"\nContenido de la LinkedList:\n";
-    list.Print(); // Imprime lista
+    list.Print(); // Imprime la lista
 
-    list.pop_front(); // Elimina primer nodo
+    list.pop_front(); // Elimina el primer nodo
     cout<<"Después de pop_front:\n";
     list.Print(); // Imprime otra vez
 
     return 0;
 }
-// Nos apoyamos de la IA para poder averiguar si nos haria falta liberar memoria en el LinkeList
+
+// Nos apoyamos de la IA para averiguar si hacía falta liberar memoria en LinkedList.
 // Videos de YT que nos ayudaron tambien: C++ Tutorial - LINKED LISTS.   Curso de Programacion en C++ | 06 Directivas de preprocesador
-
-
