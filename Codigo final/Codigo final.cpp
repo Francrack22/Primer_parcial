@@ -6,20 +6,19 @@
 #include <stack>           
 #include <vector>          
 #include <list>            
-using namespace std;
 
-// Error corregido
+// Error corregido en, habia un menos 1 al final que hacia que devolviero mal el resultado
 double logBase(double valor, double base) 
 {
-    return log(valor) / log(base); 
+    return std::log(valor) / std::log(base); 
 }
 
 // Calcula la altura mínima de un árbol según el número de nodos y máximo de hijos
 int calcularAlturaMinima(int nodos, int hijosMax) 
 {
-    int formula = (hijosMax - 1) * nodos + 1;                      
-    int altura = ceil(logBase(formula, hijosMax)) - 1;              // usa el logaritmo y redondeo hacia arriba
-    return altura;                                                  // Regresae la altura mínima
+    int formula = (hijosMax - 1) * nodos + 1;                       
+    int altura = static_cast<int>(std::ceil(logBase(formula, hijosMax))); // corregido sin restar 1
+    return altura;                                                  // Regresa la altura mínima
 }
 
 // Clase Nodo del Árbol Binario de Búsqueda
@@ -38,22 +37,44 @@ class BST
 private:
     Nodo* raiz; // Nodo raíz del árbol
 
-    // Inserción recursiva
+    // Inserción recursiva con control para evitar duplicados
     Nodo* insertar(Nodo* nodo, int valor) 
     {
         if (!nodo) return new Nodo(valor);            // Si el nodo está vacío, se crea uno nuevo
         if (valor < nodo->valor) nodo->izquierdo = insertar(nodo->izquierdo, valor);
-        else nodo->derecho = insertar(nodo->derecho, valor);
+        else if (valor > nodo->valor) nodo->derecho = insertar(nodo->derecho, valor);
+        // Si valor == nodo->valor, no inserta para evitar duplicados
         return nodo;
     }
 
-    // post-order
+    // post-order iterativo usando dos stacks (más sencillo y confiable)
+    void postOrderIterativoAux(Nodo* nodo) 
+    {
+        if (!nodo) return;
+        std::stack<Nodo*> pila1, pila2;
+        pila1.push(nodo);
+        while (!pila1.empty()) 
+        {
+            Nodo* actual = pila1.top();
+            pila1.pop();
+            pila2.push(actual);
+            if (actual->izquierdo) pila1.push(actual->izquierdo);
+            if (actual->derecho) pila1.push(actual->derecho);
+        }
+        while (!pila2.empty()) 
+        {
+            std::cout << pila2.top()->valor << " ";
+            pila2.pop();
+        }
+    }
+
+    // Liberar memoria recursivamente
     void borrarSubarbol(Nodo* nodo) 
     {
         if (!nodo) return;
-        borrarSubarbol(nodo->izquierdo);   // Primero subárbol izquierdo
-        borrarSubarbol(nodo->derecho);     // Luego subárbol derecho
-        delete nodo;                       // al final borra el nodo actual
+        borrarSubarbol(nodo->izquierdo);
+        borrarSubarbol(nodo->derecho);
+        delete nodo;
     }
 
 public:
@@ -66,57 +87,31 @@ public:
         raiz = insertar(raiz, valor);
     }
 
-    // Búsqueda iterativa
-    bool buscar(int valor) 
+    // Búsqueda iterativa que regresa puntero a nodo o nullptr si no encuentra
+    Nodo* buscar(int valor) 
     {
         Nodo* actual = raiz;
         while (actual) 
         {
-            if (valor == actual->valor) return true;
+            if (valor == actual->valor) return actual;
             actual = (valor < actual->valor) ? actual->izquierdo : actual->derecho;
         }
-        return false;
+        return nullptr;
     }
 
-    // Recorrido Post-order iterativo
+    // Post-order iterativo público
     void postOrderIterativo() 
     {
-        if (!raiz) return;
-        stack<Nodo*> pila;
-        Nodo* ultimoVisitado = nullptr;
-        Nodo* actual = raiz;
-
-        while (!pila.empty() || actual) 
-        {
-            if (actual) 
-            {
-                pila.push(actual);
-                actual = actual->izquierdo;
-            }
-            else 
-            {
-                Nodo* tope = pila.top();
-                if (tope->derecho && ultimoVisitado != tope->derecho) 
-                {
-                    actual = tope->derecho;
-                }
-                else 
-                {
-                    cout<<tope->valor<<" ";
-                    ultimoVisitado = tope;
-                    pila.pop();
-                }
-            }
-        }
-        cout<<endl;
+        postOrderIterativoAux(raiz);
+        std::cout << std::endl;
     }
 };
 
-// Clase HashTable 
+// Clase HashTable con encadenamiento para colisiones
 class HashTableChaining 
 {
 protected:
-    vector<list<int>> tabla; // Tabla con listas para manejar colisiones
+    std::vector<std::list<int>> tabla; // Tabla con listas para manejar colisiones
     int capacidad;           // Número de posiciones
 
     int hashFuncion(int clave) const 
@@ -136,19 +131,30 @@ public:
         tabla[indice].push_back(valor);
     }
 
+    // Busca si el valor está en la tabla (útil para evitar duplicados)
+    bool buscar(int valor) const
+    {
+        int indice = hashFuncion(valor);
+        for (int val : tabla[indice]) 
+        {
+            if (val == valor) return true;
+        }
+        return false;
+    }
+
     // Muestra la tabla
     void mostrar() const 
     {
         for (int i = 0; i < capacidad; i++) 
         {
-            cout<<i<<": ";
-            for (int val : tabla[i]) cout<<val << " -> ";
-            cout<<"NULL\n";
+            std::cout << i << ": ";
+            for (int val : tabla[i]) std::cout << val << " -> ";
+            std::cout << "NULL\n";
         }
     }
 };
 
-// Clase HashSet 
+// Clase HashSet sin elementos repetidos (hereda de HashTableChaining)
 class HashSet : public HashTableChaining 
 {
 public:
@@ -156,19 +162,17 @@ public:
 
     void insertar(int valor) override 
     {
-        int indice = hashFuncion(valor);
-        for (int val : tabla[indice]) 
+        if (!buscar(valor)) // Solo inserta si no está repetido
         {
-            if (val == valor) return; 
+            HashTableChaining::insertar(valor);
         }
-        tabla[indice].push_back(valor);
     }
 };
 
-// La funcion para probar
+// Función principal para probar
 int main() {
-    cout<<"Altura minima con 9 nodos y max 2 hijos: "
-        <<calcularAlturaMinima(9, 2)<<endl;
+    std::cout << "Altura minima con 9 nodos y max 2 hijos: "
+              << calcularAlturaMinima(9, 2) << std::endl;
 
     BST arbol;
     arbol.insertar(5);
@@ -179,16 +183,17 @@ int main() {
     arbol.insertar(7);
     arbol.insertar(9);
 
-    cout<<"Busqueda de 7: "<<(arbol.buscar(7) ? "Encontrado" : "No encontrado")<<endl;
+    Nodo* resultadoBusqueda = arbol.buscar(7);
+    std::cout << "Busqueda de 7: " << (resultadoBusqueda ? "Encontrado" : "No encontrado") << std::endl;
 
-    cout<<"Post-order iterativo: ";
-    arbol.postOrderIterativo(); 
+    std::cout << "Post-order iterativo: ";
+    arbol.postOrderIterativo();
 
     HashSet conjunto(5);
     conjunto.insertar(10);
     conjunto.insertar(20);
-    conjunto.insertar(10); 
-    cout<<"Contenido de HashSet:\n";
+    conjunto.insertar(10); // No se inserta porque ya existe
+    std::cout << "Contenido de HashSet:\n";
     conjunto.mostrar();
 
     return 0;
