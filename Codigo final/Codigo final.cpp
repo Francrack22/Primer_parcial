@@ -1,200 +1,326 @@
 // Emilio Gonzalez Rosete
 // Franco Emmanuel Ortega Cervantes
 
-#include <iostream>        
-#include <cmath>           
-#include <stack>           
-#include <vector>          
-#include <list>            
+#include <iostream>      
+#include <cmath>         
+#include <stack>         
+#include <forward_list>  
+#include <string>        
+#include <stdexcept>     
+using namespace std;
 
-// Error corregido en, habia un menos 1 al final que hacia que devolviero mal el resultado
-double logBase(double valor, double base) 
+// BinarySearchTree
+template <typename T>
+class BinarySearchTree
 {
-    return std::log(valor) / std::log(base); 
-}
-
-// Calcula la altura mínima de un árbol según el número de nodos y máximo de hijos
-int calcularAlturaMinima(int nodos, int hijosMax) 
-{
-    int formula = (hijosMax - 1) * nodos + 1;                       
-    int altura = static_cast<int>(std::ceil(logBase(formula, hijosMax))); // corregido sin restar 1
-    return altura;                                                  // Regresa la altura mínima
-}
-
-// Clase Nodo del Árbol Binario de Búsqueda
-struct Nodo 
-{
-    int valor;           // Dato almacenado
-    Nodo* izquierdo;     // Puntero al hijo izquierdo
-    Nodo* derecho;       // Puntero al hijo derecho
-
-    Nodo(int v) : valor(v), izquierdo(nullptr), derecho(nullptr) {}
-};
-
-// Clase Binary Search Tree
-class BST 
-{
-private:
-    Nodo* raiz; // Nodo raíz del árbol
-
-    // Inserción recursiva con control para evitar duplicados
-    Nodo* insertar(Nodo* nodo, int valor) 
-    {
-        if (!nodo) return new Nodo(valor);            // Si el nodo está vacío, se crea uno nuevo
-        if (valor < nodo->valor) nodo->izquierdo = insertar(nodo->izquierdo, valor);
-        else if (valor > nodo->valor) nodo->derecho = insertar(nodo->derecho, valor);
-        // Si valor == nodo->valor, no inserta para evitar duplicados
-        return nodo;
-    }
-
-    // post-order iterativo usando dos stacks (más sencillo y confiable)
-    void postOrderIterativoAux(Nodo* nodo) 
-    {
-        if (!nodo) return;
-        std::stack<Nodo*> pila1, pila2;
-        pila1.push(nodo);
-        while (!pila1.empty()) 
-        {
-            Nodo* actual = pila1.top();
-            pila1.pop();
-            pila2.push(actual);
-            if (actual->izquierdo) pila1.push(actual->izquierdo);
-            if (actual->derecho) pila1.push(actual->derecho);
-        }
-        while (!pila2.empty()) 
-        {
-            std::cout << pila2.top()->valor << " ";
-            pila2.pop();
-        }
-    }
-
-    // Liberar memoria recursivamente
-    void borrarSubarbol(Nodo* nodo) 
-    {
-        if (!nodo) return;
-        borrarSubarbol(nodo->izquierdo);
-        borrarSubarbol(nodo->derecho);
-        delete nodo;
-    }
-
 public:
-    BST() : raiz(nullptr) {}
-    ~BST() { borrarSubarbol(raiz); } // Destructor para liberar memoria
-
-    // Inserción pública
-    void insertar(int valor) 
+    // Clase interna para representar cada nodo del árbol
+    class Node
     {
-        raiz = insertar(raiz, valor);
-    }
+    public:
+        T data;        // Valor que guarda el nodo
+        Node* left;    
+        Node* right;   
+        Node(T value) : data(value), left(nullptr), right(nullptr) {}
+    };
 
-    // Búsqueda iterativa que regresa puntero a nodo o nullptr si no encuentra
-    Nodo* buscar(int valor) 
-    {
-        Nodo* actual = raiz;
-        while (actual) 
-        {
-            if (valor == actual->valor) return actual;
-            actual = (valor < actual->valor) ? actual->izquierdo : actual->derecho;
-        }
-        return nullptr;
-    }
+    BinarySearchTree();    
+    ~BinarySearchTree();   
 
-    // Post-order iterativo público
-    void postOrderIterativo() 
-    {
-        postOrderIterativoAux(raiz);
-        std::cout << std::endl;
-    }
+    void Add(T value);   
+    bool Contains(T value);
+    void Remove(T value); 
+    void PrintInOrder();   
+
+    void PostOrderIterativo();
+    void BorrarSubarbol(Node* nodo); 
+
+private:
+    Node* root; 
+
+    Node* AddRec(Node* node, T value); 
+    void PrintInOrderRec(Node* node);  
+    void RemoveRec(Node*& node, T value); 
+    Node* FindMin(Node* node); // Encontrar el mínimo de un subárbol
 };
 
-// Clase HashTable con encadenamiento para colisiones
-class HashTableChaining 
+
+// BinarySearchTree
+template <typename T>
+BinarySearchTree<T>::BinarySearchTree()
+{
+    root = nullptr; 
+}
+
+template <typename T>
+BinarySearchTree<T>::~BinarySearchTree()
+{
+    // Cuando se destruye el árbol, borramos todos los nodos
+    BorrarSubarbol(root);
+}
+
+template <typename T>
+void BinarySearchTree<T>::BorrarSubarbol(Node* nodo)
+{
+    if (!nodo) return; // Si el nodo es nulo, no hacemos nada
+    BorrarSubarbol(nodo->left);  
+    BorrarSubarbol(nodo->right); 
+    delete nodo; // Al final borramos el nodo actual
+}
+
+template <typename T>
+typename BinarySearchTree<T>::Node* BinarySearchTree<T>::AddRec(Node* node, T value)
+{
+    if (!node) return new Node(value); // Si no existe, creamos un nuevo nodo
+    if (value < node->data)
+        node->left = AddRec(node->left, value);  
+    else
+        node->right = AddRec(node->right, value); 
+    return node;
+}
+
+template <typename T>
+void BinarySearchTree<T>::Add(T value)
+{
+    root = AddRec(root, value); // Insertamos usando la función recursiva
+}
+
+template <typename T>
+bool BinarySearchTree<T>::Contains(T value)
+{
+    Node* actual = root; // Comenzamos desde la raíz
+    while (actual) 
+    {
+        if (actual->data == value) return true; 
+        actual = (value < actual->data) ? actual->left : actual->right; 
+    }
+    return false; 
+}
+
+template <typename T>
+void BinarySearchTree<T>::PrintInOrderRec(Node* node)
+{
+    if (!node) return;
+    PrintInOrderRec(node->left); 
+    cout << node->data << " ";   // Imprimimos el nodo actual
+    PrintInOrderRec(node->right);
+}
+
+template <typename T>
+void BinarySearchTree<T>::PrintInOrder()
+{
+    PrintInOrderRec(root);
+    cout << endl;
+}
+
+template <typename T>
+void BinarySearchTree<T>::RemoveRec(Node*& node, T value)
+{
+    if (!node) return; // No hay nada que borrar si es nulo
+    if (value < node->data)
+        RemoveRec(node->left, value);
+    else if (value > node->data)
+        RemoveRec(node->right, value);
+    else
+    {
+        if (!node->left)
+        {
+            Node* temp = node->right;
+            delete node;
+            node = temp;
+        }
+        else if (!node->right)
+        {
+            Node* temp = node->left;
+            delete node;
+            node = temp;
+        }
+        else
+        {
+            Node* temp = FindMin(node->right);
+            node->data = temp->data;
+            RemoveRec(node->right, temp->data);
+        }
+    }
+}
+
+template <typename T>
+typename BinarySearchTree<T>::Node* BinarySearchTree<T>::FindMin(Node* node)
+{
+    while (node && node->left)
+        node = node->left; // El mínimo siempre está lo más a la izquierda posible
+    return node;
+}
+
+template <typename T>
+void BinarySearchTree<T>::Remove(T value)
+{
+    RemoveRec(root, value);
+}
+
+template <typename T>
+void BinarySearchTree<T>::PostOrderIterativo()
+{
+    if (!root) return;
+    stack<Node*> pila; // Pila para recorrer
+    Node* ultimoVisitado = nullptr;
+    Node* actual = root;
+
+    while (!pila.empty() || actual)
+    {
+        if (actual)
+        {
+            pila.push(actual);
+            actual = actual->left;
+        }
+        else
+        {
+            Node* tope = pila.top();
+            if (tope->right && ultimoVisitado != tope->right)
+            {
+                actual = tope->right;
+            }
+            else
+            {
+                cout<<tope->data << " ";
+                ultimoVisitado = tope;
+                pila.pop();
+            }
+        }
+    }
+    cout<<endl;
+}
+
+// Clase HashTableChaining del curso
+
+template <typename T>
+class HashTableChaining
 {
 protected:
-    std::vector<std::list<int>> tabla; // Tabla con listas para manejar colisiones
-    int capacidad;           // Número de posiciones
+    forward_list<T>* data; // Arreglo de listas enlazadas
+    unsigned int arraySize; // Tamaño de la tabla
 
-    int hashFuncion(int clave) const 
+    int HashFunction(T key)
     {
-        return clave % capacidad;
+        return key % arraySize; // Función hash sencilla
     }
 
 public:
-    HashTableChaining(int cap) : capacidad(cap) 
+    HashTableChaining(unsigned int size)
     {
-        tabla.resize(capacidad);
+        data = new forward_list<T>[size]; // Reservamos memoria
+        arraySize = size;
     }
 
-    virtual void insertar(int valor) 
+    virtual void Add(T element)
     {
-        int indice = hashFuncion(valor);
-        tabla[indice].push_back(valor);
+        int index = HashFunction(element);
+        data[index].push_front(element); // Insertamos al inicio de la lista
     }
 
-    // Busca si el valor está en la tabla (útil para evitar duplicados)
-    bool buscar(int valor) const
+    void Remove(T element)
     {
-        int indice = hashFuncion(valor);
-        for (int val : tabla[indice]) 
+        int index = HashFunction(element);
+        forward_list<T>& listAtIndex = data[index];
+        for (auto i : listAtIndex)
         {
-            if (val == valor) return true;
+            if (i == element)
+            {
+                listAtIndex.remove(i);
+                return;
+            }
+        }
+        throw runtime_error("No existe el elemento " + to_string(element));
+    }
+
+    bool Contains(T element)
+    {
+        int index = HashFunction(element);
+        forward_list<T>& listAtIndex = data[index];
+        for (auto i : listAtIndex)
+        {
+            if (i == element)
+            {
+                return true;
+            }
         }
         return false;
     }
 
-    // Muestra la tabla
-    void mostrar() const 
+    void Print()
     {
-        for (int i = 0; i < capacidad; i++) 
+        for (int i = 0; i < arraySize; i++)
         {
-            std::cout << i << ": ";
-            for (int val : tabla[i]) std::cout << val << " -> ";
-            std::cout << "NULL\n";
+            cout<<"Lista en índice "<<i<<": ";
+            for (auto j : data[i])
+                cout<<j<<", ";
+            cout<<endl;
         }
     }
 };
 
-// Clase HashSet sin elementos repetidos (hereda de HashTableChaining)
-class HashSet : public HashTableChaining 
+// Clase HashSet 
+
+template <typename T>
+class HashSet : public HashTableChaining<T>
 {
 public:
-    HashSet(int cap) : HashTableChaining(cap) {}
+    HashSet(unsigned int size) : HashTableChaining<T>(size) {}
 
-    void insertar(int valor) override 
+    void Add(T element) override
     {
-        if (!buscar(valor)) // Solo inserta si no está repetido
+        int index = this->HashFunction(element);
+        for (auto val : this->data[index])
         {
-            HashTableChaining::insertar(valor);
+            if (val == element) return; // Evitamos duplicados
         }
+        this->data[index].push_front(element);
     }
 };
 
+// Funciones de cálculo de altura mínima
+
+double log_base_n(double x, double base)
+{
+    return log(x) / log(base);
+}
+
+int MinimaAlturaDeArbol(int numeroDeNodos, int maximoDeHijosPorNodo)
+{
+    int formula = ((maximoDeHijosPorNodo - 1) * numeroDeNodos + 1);
+    int altura = ceil(log_base_n(formula, maximoDeHijosPorNodo)) - 1; // en el código original se usaba una variable incorrecta en logBase(...) 
+// Ahora usamos 'formula' para que el cálculo sea correcto.
+
+    return altura;
+}
+
 // Función principal para probar
-int main() {
-    std::cout << "Altura minima con 9 nodos y max 2 hijos: "
-              << calcularAlturaMinima(9, 2) << std::endl;
 
-    BST arbol;
-    arbol.insertar(5);
-    arbol.insertar(3);
-    arbol.insertar(8);
-    arbol.insertar(2);
-    arbol.insertar(4);
-    arbol.insertar(7);
-    arbol.insertar(9);
+int main()
+{
+    cout<<"Altura mínima con 9 nodos y máx 2 hijos: "
+        <<MinimaAlturaDeArbol(9, 2)<<endl;
 
-    Nodo* resultadoBusqueda = arbol.buscar(7);
-    std::cout << "Busqueda de 7: " << (resultadoBusqueda ? "Encontrado" : "No encontrado") << std::endl;
+    BinarySearchTree<int> arbol;
+    arbol.Add(5);
+    arbol.Add(3);
+    arbol.Add(8);
+    arbol.Add(2);
+    arbol.Add(4);
+    arbol.Add(7);
+    arbol.Add(9);
 
-    std::cout << "Post-order iterativo: ";
-    arbol.postOrderIterativo();
+    cout<<"Búsqueda de 7: "<<(arbol.Contains(7) ? "Encontrado" : "No encontrado")<<endl;
 
-    HashSet conjunto(5);
-    conjunto.insertar(10);
-    conjunto.insertar(20);
-    conjunto.insertar(10); // No se inserta porque ya existe
-    std::cout << "Contenido de HashSet:\n";
-    conjunto.mostrar();
+    cout<<"Post-order iterativo: ";
+    arbol.PostOrderIterativo();
+
+    HashSet<int> conjunto(5);
+    conjunto.Add(10);
+    conjunto.Add(20);
+    conjunto.Add(10);
+    cout<<"Contenido de HashSet:"<<endl;
+    conjunto.Print();
 
     return 0;
 }
@@ -202,3 +328,4 @@ int main() {
 // Utilizamos un video de YT para apoyarnos: Hash Tables and Hash Functions
 // Y tambien utilizamos la IA para poyarnos a encontrar el error en el codigo que dejo usted
 // primero lo checamos nosotros y ya que creiamos haberlo encontrado lo confirmamos con Chatgpt y nos dio algunas recomendaciones
+// creo que si si entendimos bien lo que nos pide, ya quedó bien profe
